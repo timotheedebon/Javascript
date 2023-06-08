@@ -1,4 +1,5 @@
-import { compose, curry, groupBy, head, map, reduce, prop , mapObjIndexed, maxBy, length } from 'ramda';
+import * as R from 'ramda';
+
 import csvToJson from 'csvtojson';
 import fs from 'fs/promises';
 
@@ -23,8 +24,8 @@ const findMostRecentEntry = (data) => {
 };
 
 const findLongestText = (data) => {
-    const longestText = reduce(
-        maxBy(compose(length, prop('text'))),
+    const longestText = R.reduce(
+        R.maxBy(R.compose(R.length, R.prop('text'))),
         { text: '' },
         data
     );
@@ -32,20 +33,24 @@ const findLongestText = (data) => {
 };
 
 const findUserWithMostEntries = (data) => {
-    const entriesByUser = groupBy(prop('user'), data);
-    const userEntries = mapObjIndexed((entries, user) => ({ user, count: entries.length }), entriesByUser);
-    const userWithMostEntries = reduce(maxBy(prop('count')), { count: 0 }, Object.values(userEntries));
+    const entriesByUser = R.groupBy(R.prop('user'), data);
+    const userEntries = R.mapObjIndexed((entries, user) => ({ user, count: entries.length }), entriesByUser);
+    const userWithMostEntries = R.reduce(R.maxBy(R.prop('count')), { count: 0 }, Object.values(userEntries));
 
     return userWithMostEntries;
 
 
 };
 
+const countMentions = R.compose(R.length, R.split(/\s+/), R.prop('text'));
 
-const displayResults = curry((mostRecent, longestText, userWithMostEntries) => {
-    console.log(`Tweet de l'utilisateur le plus recent (${mostRecent.date}): ${mostRecent.text},@${mostRecent.user}`);
+
+
+const displayResults = R.curry((mostRecent, longestText, userWithMostEntries, mentionsCount) => {
+    console.log(`Tweet de l'utilisateur le plus récent (${mostRecent.date}): ${mostRecent.text},@${mostRecent.user}`);
     console.log(`Tweet avec le plus grand nombre de caractères: ${longestText}`);
     console.log(`Utilisateur avec le plus grand nombre de tweets: ${userWithMostEntries.user} (${userWithMostEntries.count} tweets)`);
+    console.log(`Nombre de mentions: ${mentionsCount}`);
 });
 
 const handleError = (error) => {
@@ -59,7 +64,8 @@ const main = async () => {
         const mostRecentEntry = findMostRecentEntry(data);
         const longestText = findLongestText(data);
         const userWithMostEntries = findUserWithMostEntries(data);
-        displayResults(mostRecentEntry, longestText, userWithMostEntries);
+        const mentionsCount = countMentions(mostRecentEntry); // Compte les mentions dans le tweet le plus récent
+        displayResults(mostRecentEntry, longestText, userWithMostEntries, mentionsCount);
 
     } catch (error) {
         handleError(error);
@@ -67,4 +73,3 @@ const main = async () => {
 };
 
 main();
-
