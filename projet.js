@@ -22,6 +22,13 @@ const findMostRecentEntry = (data) => {
     return mostRecentEntry;
 };
 
+const findOldestEntry = (data) => {
+    const compareDates = (entry1, entry2) => new Date(entry1.date).getTime() - new Date(entry2.date).getTime();
+    const sortByDateAscending = (list) => [...list].sort(compareDates);
+    const [oldestEntry] = sortByDateAscending(data);
+    return oldestEntry;
+};
+
 const findLongestText = (data) => {
     const longestText = R.reduce(
         R.maxBy(R.compose(R.length, R.prop('text'))),
@@ -49,8 +56,9 @@ const calculateAverageDelay = (data) => {
     return averageDelay;
 };
 
-const displayResults = R.curry((mostRecent, longestText, userWithMostEntries, mentionsCount) => {
+const displayResults = R.curry((mostRecent, oldest, longestText, userWithMostEntries, mentionsCount) => {
     console.log(`\n\x1b[4mTweet de l'utilisateur le plus récent (${mostRecent.date}):\x1b[0m\n${mostRecent.text},@${mostRecent.user}`);
+    console.log(`\n\x1b[4mTweet le plus ancien (${oldest.date}):\x1b[0m\n${oldest.text},@${oldest.user}`);
     console.log(`\n\x1b[4mTweet avec le plus grand nombre de caractères:\x1b[0m\n${longestText}`);
     console.log(`\n\x1b[4mUtilisateur avec le plus grand nombre de tweets:\x1b[0m\n${userWithMostEntries.user} (${userWithMostEntries.count} tweets)`);
     console.log(`\n\x1b[4mNombre de mentions:\x1b[0m\n${mentionsCount}`);
@@ -65,13 +73,14 @@ const main = async () => {
     try {
         const data = await convertCsvToJson(csvFilePath);
         const mostRecentEntry = findMostRecentEntry(data);
+        const oldestEntry = findOldestEntry(data);
         const longestText = findLongestText(data);
         const userWithMostEntries = findUserWithMostEntries(data);
         const mentionsCount = countMentions(mostRecentEntry);
         const averageDelay = calculateAverageDelay(data);
 
-        displayResults(mostRecentEntry, longestText, userWithMostEntries, mentionsCount);
-        console.log(`\n\x1b[4mMoyenne du délai entre les tweets:\x1b[0m ${averageDelay} ms`);
+        displayResults(mostRecentEntry, oldestEntry, longestText, userWithMostEntries, mentionsCount);
+        console.log(`\n\x1b[4mMoyenne du délai entre les tweets:\x1b[0m ${averageDelay.toFixed(2)} ms`);
     } catch (error) {
         handleError(error);
     }
