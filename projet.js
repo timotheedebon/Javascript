@@ -1,5 +1,4 @@
 import * as R from 'ramda';
-
 import csvToJson from 'csvtojson';
 import fs from 'fs/promises';
 
@@ -38,19 +37,23 @@ const findUserWithMostEntries = (data) => {
     const userWithMostEntries = R.reduce(R.maxBy(R.prop('count')), { count: 0 }, Object.values(userEntries));
 
     return userWithMostEntries;
-
-
 };
 
 const countMentions = R.compose(R.length, R.split(/\s+/), R.prop('text'));
 
-
+const calculateAverageDelay = (data) => {
+    const tweetDates = data.map((entry) => new Date(entry.date));
+    const delays = R.aperture(2, tweetDates).map(([date1, date2]) => date2 - date1);
+    const totalDelay = R.sum(delays);
+    const averageDelay = totalDelay / (delays.length || 1);
+    return averageDelay;
+};
 
 const displayResults = R.curry((mostRecent, longestText, userWithMostEntries, mentionsCount) => {
-    console.log(`Tweet de l'utilisateur le plus récent (${mostRecent.date}): ${mostRecent.text},@${mostRecent.user}`);
-    console.log(`Tweet avec le plus grand nombre de caractères: ${longestText}`);
-    console.log(`Utilisateur avec le plus grand nombre de tweets: ${userWithMostEntries.user} (${userWithMostEntries.count} tweets)`);
-    console.log(`Nombre de mentions: ${mentionsCount}`);
+    console.log(`\n\x1b[4mTweet de l'utilisateur le plus récent (${mostRecent.date}):\x1b[0m\n${mostRecent.text},@${mostRecent.user}`);
+    console.log(`\n\x1b[4mTweet avec le plus grand nombre de caractères:\x1b[0m\n${longestText}`);
+    console.log(`\n\x1b[4mUtilisateur avec le plus grand nombre de tweets:\x1b[0m\n${userWithMostEntries.user} (${userWithMostEntries.count} tweets)`);
+    console.log(`\n\x1b[4mNombre de mentions:\x1b[0m\n${mentionsCount}`);
 });
 
 const handleError = (error) => {
@@ -64,9 +67,11 @@ const main = async () => {
         const mostRecentEntry = findMostRecentEntry(data);
         const longestText = findLongestText(data);
         const userWithMostEntries = findUserWithMostEntries(data);
-        const mentionsCount = countMentions(mostRecentEntry); // Compte les mentions dans le tweet le plus récent
-        displayResults(mostRecentEntry, longestText, userWithMostEntries, mentionsCount);
+        const mentionsCount = countMentions(mostRecentEntry);
+        const averageDelay = calculateAverageDelay(data);
 
+        displayResults(mostRecentEntry, longestText, userWithMostEntries, mentionsCount);
+        console.log(`\n\x1b[4mMoyenne du délai entre les tweets:\x1b[0m ${averageDelay} ms`);
     } catch (error) {
         handleError(error);
     }
